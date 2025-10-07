@@ -12,6 +12,21 @@ import {
   Query,
   Put,
 } from '@nestjs/common'
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiNoContentResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+} from '@nestjs/swagger'
 import { UsersService } from './services/users.service'
 import {
   CreateUserDto,
@@ -29,6 +44,7 @@ import { Permissions } from '@/common/decorators/permission.decorator'
 import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
 import { ActiveUser } from '@/common/decorators/active-user.decorator'
 
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(
@@ -39,6 +55,50 @@ export class UsersController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Register a new user',
+    description:
+      'Creates a new user account with email, name and password. Returns user data and JWT token.',
+  })
+  @ApiCreatedResponse({
+    description: 'User created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'User created successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            name: { type: 'string' },
+            user_role: { type: 'string', enum: ['user', 'admin'] },
+            isActive: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        token: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'User with this email already exists or validation failed',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: {
+          type: 'string',
+          example: 'User with this email already exists',
+        },
+      },
+    },
+  })
   async create(@Body() createUserDto: CreateUserDto) {
     const existingUser = await this.usersService.findByEmail(
       createUserDto.email,
@@ -63,6 +123,37 @@ export class UsersController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'User login',
+    description:
+      'Authenticates a user with email and password. Returns JWT token.',
+  })
+  @ApiOkResponse({
+    description: 'Login successful',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        token: {
+          type: 'string',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'User does not exist or is blocked',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: {
+          type: 'string',
+          examples: ['This user does not exist', 'This user is blocked'],
+        },
+      },
+    },
+  })
   async login(@Body() loginDto: LoginDto) {
     const user = await this.usersService.findByEmail(loginDto.email)
 
@@ -88,6 +179,66 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all users',
+    description: 'Retrieves a list of users with optional filtering.',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: String,
+    description: 'Filter by user active status (true/false)',
+    example: 'true',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    description: 'Filter by user name',
+    example: 'John',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: String,
+    description: 'Page number',
+    example: '1',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: String,
+    description: 'Number of items per page',
+    example: '10',
+  })
+  @ApiOkResponse({
+    description: 'Users retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Users retrieved successfully' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              email: { type: 'string', format: 'email' },
+              name: { type: 'string' },
+              user_role: { type: 'string', enum: ['user', 'admin'] },
+              isActive: { type: 'boolean' },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
   async findAll(@Query() filterData: UserFilterDto) {
     console.log('filterData', filterData)
     const users = await this.usersService.findAll(filterData)
@@ -106,6 +257,45 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get user by ID',
+    description:
+      'Retrieves a specific user by ID. Users can only view their own profile unless they are admin.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'User ID',
+    format: 'uuid',
+  })
+  @ApiOkResponse({
+    description: 'User retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'User retrieved successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            name: { type: 'string' },
+            user_role: { type: 'string', enum: ['user', 'admin'] },
+            isActive: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Permission denied or user not found',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
   async findOne(@Param('id') id: string, @UserData() userData: User) {
     if (userData.user_role !== 'admin' && userData.id !== id) {
       throw new BadRequestException(
@@ -125,6 +315,41 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
   @Permissions(['admin'])
   @ActiveUser(true)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Block user',
+    description: 'Blocks a user account. Only admins can perform this action.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'User ID to block',
+    format: 'uuid',
+  })
+  @ApiOkResponse({
+    description: 'User blocked successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'User blocked successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            name: { type: 'string' },
+            user_role: { type: 'string', enum: ['user', 'admin'] },
+            isActive: { type: 'boolean', example: false },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   async blockUser(@Param('id') id: string) {
     const user = await this.usersService.blockUser(id, false)
     return {
@@ -138,6 +363,45 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update user',
+    description:
+      'Updates user information. Users can only update their own profile unless they are admin.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'User ID to update',
+    format: 'uuid',
+  })
+  @ApiOkResponse({
+    description: 'User updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'User updated successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            name: { type: 'string' },
+            user_role: { type: 'string', enum: ['user', 'admin'] },
+            isActive: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Permission denied or validation failed',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -161,6 +425,33 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
   @Permissions(['admin', 'user'])
   @ActiveUser(true)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Delete user',
+    description:
+      'Deletes a user account. Users can only delete their own account unless they are admin.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'User ID to delete',
+    format: 'uuid',
+  })
+  @ApiNoContentResponse({
+    description: 'User deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'User deleted successfully' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Permission denied',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
   async remove(@Param('id') id: string, @UserData() userData: User) {
     if (userData.user_role !== 'admin' && userData.id !== id) {
       throw new BadRequestException(

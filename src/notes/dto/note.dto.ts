@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { createZodDto } from 'nestjs-zod'
+import { ApiProperty } from '@nestjs/swagger'
 
 export const NoteFilterSchema = z.object({
   page: z
@@ -45,9 +46,43 @@ export const UpdateNoteSchema = z.object({
 })
 
 // DTOs using nestjs-zod
-export class CreateNoteDto extends createZodDto(CreateNoteSchema) {}
-export class UpdateNoteDto extends createZodDto(UpdateNoteSchema) {}
+export class CreateNoteDto extends createZodDto(CreateNoteSchema) {
+  @ApiProperty({
+    description: 'Note title',
+    example: 'My Important Note',
+    minLength: 1,
+    maxLength: 255,
+  })
+  title: string
+
+  @ApiProperty({
+    description: 'Note content',
+    example: 'This is the content of my note.',
+    required: false,
+  })
+  content?: string
+}
+
+export class UpdateNoteDto extends createZodDto(UpdateNoteSchema) {
+  @ApiProperty({
+    description: 'Note title',
+    example: 'Updated Note Title',
+    minLength: 1,
+    maxLength: 255,
+    required: false,
+  })
+  title?: string
+
+  @ApiProperty({
+    description: 'Note content',
+    example: 'Updated note content.',
+    required: false,
+  })
+  content?: string
+}
+
 export class NoteFilterDto extends createZodDto(NoteFilterSchema) {}
+
 // Types
 export type CreateNoteType = z.infer<typeof CreateNoteSchema>
 export type UpdateNoteType = z.infer<typeof UpdateNoteSchema>

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { createZodDto } from 'nestjs-zod'
+import { ApiProperty } from '@nestjs/swagger'
 
 export const UserFilterSchema = z.object({
   isActive: z
@@ -48,9 +49,65 @@ export const LoginSchema = z.object({
 })
 
 // DTOs using nestjs-zod
-export class CreateUserDto extends createZodDto(CreateUserSchema) {}
-export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
-export class LoginDto extends createZodDto(LoginSchema) {}
+export class CreateUserDto extends createZodDto(CreateUserSchema) {
+  @ApiProperty({
+    description: 'User email address',
+    example: 'user@example.com',
+    format: 'email',
+  })
+  email: string
+
+  @ApiProperty({
+    description: 'User full name',
+    example: 'John Doe',
+    minLength: 2,
+    maxLength: 255,
+  })
+  name: string
+
+  @ApiProperty({
+    description: 'User password',
+    example: 'password123',
+    minLength: 6,
+    maxLength: 100,
+  })
+  password: string
+}
+
+export class UpdateUserDto extends createZodDto(UpdateUserSchema) {
+  @ApiProperty({
+    description: 'User full name',
+    example: 'John Doe',
+    minLength: 2,
+    maxLength: 255,
+    required: false,
+  })
+  name?: string
+
+  @ApiProperty({
+    description: 'User email address',
+    example: 'user@example.com',
+    format: 'email',
+    required: false,
+  })
+  email?: string
+}
+
+export class LoginDto extends createZodDto(LoginSchema) {
+  @ApiProperty({
+    description: 'User email address',
+    example: 'user@example.com',
+    format: 'email',
+  })
+  email: string
+
+  @ApiProperty({
+    description: 'User password',
+    example: 'password123',
+  })
+  password: string
+}
+
 export class UserFilterDto extends createZodDto(UserFilterSchema) {}
 
 // Types
