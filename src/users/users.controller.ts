@@ -40,6 +40,7 @@ import { Permissions } from '@/common/decorators/permission.decorator'
 import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
 import { ActiveUser } from '@/common/decorators/active-user.decorator'
 import { UsersRuleGuard } from './user-rule.guard'
+import { generateSuccess } from '@/common/generate-success'
 
 @ApiTags('Users')
 @Controller('users')
@@ -67,18 +68,23 @@ export class UsersController {
         data: {
           type: 'object',
           properties: {
-            id: { type: 'string', format: 'uuid' },
-            email: { type: 'string', format: 'email' },
-            name: { type: 'string' },
-            user_role: { type: 'string', enum: ['user', 'admin'] },
-            isActive: { type: 'boolean' },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                email: { type: 'string', format: 'email' },
+                name: { type: 'string' },
+                user_role: { type: 'string', enum: ['user', 'admin'] },
+                isActive: { type: 'boolean' },
+                createdAt: { type: 'string', format: 'date-time' },
+                updatedAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            token: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            },
           },
-        },
-        token: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
       },
     },
@@ -110,12 +116,7 @@ export class UsersController {
       id: user.id,
       user_role: user.user_role,
     })
-    return {
-      success: true,
-      message: 'User created successfully',
-      data: user,
-      token,
-    }
+    return generateSuccess('User created successfully', { user, token })
   }
 
   @Post('login')
@@ -131,9 +132,15 @@ export class UsersController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        token: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        message: { type: 'string', example: 'Login successful' },
+        data: {
+          type: 'object',
+          properties: {
+            token: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            },
+          },
         },
       },
     },
@@ -166,10 +173,7 @@ export class UsersController {
       id: user.id,
       user_role: user.user_role,
     })
-    return {
-      success: true,
-      token,
-    }
+    return generateSuccess('Login successful', { token })
   }
 
   @Get()
@@ -241,11 +245,7 @@ export class UsersController {
     const mappedUsers = users.map(user =>
       this.userToResponseDataMapper.toResponse(user),
     )
-    return {
-      success: true,
-      message: 'Users retrieved successfully',
-      data: mappedUsers,
-    }
+    return generateSuccess('Users retrieved successfully', mappedUsers)
   }
 
   @Get(':id')
@@ -294,11 +294,7 @@ export class UsersController {
   async findOne(@Param('id') id: string) {
     const user = await this.usersService.findOne(id)
     const mappedUser = this.userToResponseDataMapper.toResponse(user)
-    return {
-      success: true,
-      message: 'User retrieved successfully',
-      data: mappedUser,
-    }
+    return generateSuccess('User retrieved successfully', mappedUser)
   }
 
   @Put('block/:id')
@@ -342,11 +338,7 @@ export class UsersController {
   @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   async blockUser(@Param('id') id: string) {
     const user = await this.usersService.blockUser(id, false)
-    return {
-      success: true,
-      message: 'User blocked successfully',
-      data: this.userToResponseDataMapper.toResponse(user),
-    }
+    return generateSuccess('User blocked successfully', user)
   }
 
   @Put(':id')
@@ -394,11 +386,7 @@ export class UsersController {
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.update(id, updateUserDto)
-    return {
-      success: true,
-      message: 'User updated successfully',
-      data: user,
-    }
+    return generateSuccess('User updated successfully', user)
   }
 
   @Delete(':id')
@@ -435,9 +423,6 @@ export class UsersController {
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async remove(@Param('id') id: string) {
     await this.usersService.remove(id)
-    return {
-      success: true,
-      message: 'User deleted successfully',
-    }
+    return generateSuccess('User deleted successfully')
   }
 }

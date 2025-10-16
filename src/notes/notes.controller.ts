@@ -20,7 +20,6 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiNoContentResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
@@ -36,6 +35,7 @@ import { ActiveUser } from '@/common/decorators/active-user.decorator'
 import { RolesGuard } from '@/common/guards/roles.guard'
 import { Permissions } from '@/common/decorators/permission.decorator'
 import { NotesRuleGuard } from '@/notes/note-rules.guard'
+import { generateSuccess } from '@/common/generate-success'
 
 @ApiTags('Notes')
 @Controller('notes')
@@ -79,11 +79,7 @@ export class NotesController {
     @UserData() userData: User,
   ) {
     const note = await this.notesService.create(userData.id, createNoteDto)
-    return {
-      success: true,
-      message: 'Note created successfully',
-      data: note,
-    }
+    return generateSuccess('Note created successfully', note)
   }
 
   @Get()
@@ -119,11 +115,7 @@ export class NotesController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async findAllUsersNotes(@UserData() userData: User) {
     const notes = await this.notesService.findAll(userData.id)
-    return {
-      success: true,
-      message: 'Notes retrieved successfully',
-      data: notes,
-    }
+    return generateSuccess('Notes retrieved successfully', notes)
   }
 
   @Get('all')
@@ -180,11 +172,7 @@ export class NotesController {
   @ApiForbiddenResponse({ description: 'Forbidden - Admin role required' })
   async findAllNotes(@Query() noteFilterData: NoteFilterDto) {
     const notes = await this.notesService.findAllNotes(noteFilterData)
-    return {
-      success: true,
-      message: 'All notes retrieved successfully',
-      data: notes,
-    }
+    return generateSuccess('All notes retrieved successfully', notes)
   }
 
   @Get(':id')
@@ -230,11 +218,7 @@ export class NotesController {
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async findOne(@Param('id') id: string) {
     const note = await this.notesService.findOneById(id)
-    return {
-      success: true,
-      message: 'Note retrieved successfully',
-      data: note,
-    }
+    return generateSuccess('Note retrieved successfully', note)
   }
 
   @Patch(':id')
@@ -242,9 +226,9 @@ export class NotesController {
   @Permissions(['user', 'admin'])
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Update note',
+    summary: 'Update note (PATCH)',
     description:
-      'Updates a note. Users can only update their own notes unless they are admin.',
+      'Partially updates a note. Users can only update their own notes unless they are admin.',
   })
   @ApiParam({
     name: 'id',
@@ -280,11 +264,7 @@ export class NotesController {
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
     const note = await this.notesService.update(id, updateNoteDto)
-    return {
-      success: true,
-      message: 'Note updated successfully',
-      data: note,
-    }
+    return generateSuccess('Note updated successfully', note)
   }
 
   @Delete(':id')
@@ -303,7 +283,7 @@ export class NotesController {
     description: 'Note ID to delete',
     format: 'uuid',
   })
-  @ApiNoContentResponse({
+  @ApiOkResponse({
     description: 'Note deleted successfully',
     schema: {
       type: 'object',
@@ -320,9 +300,6 @@ export class NotesController {
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async remove(@Param('id') id: string) {
     await this.notesService.remove(id)
-    return {
-      success: true,
-      message: 'Note deleted successfully',
-    }
+    return generateSuccess('Note deleted successfully')
   }
 }
