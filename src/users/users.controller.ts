@@ -15,8 +15,6 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
-  ApiBody,
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
@@ -240,9 +238,7 @@ export class UsersController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
   async findAll(@Query() filterData: UserFilterDto) {
-    console.log('filterData', filterData)
     const users = await this.usersService.findAll(filterData)
-    console.log(users)
     const mappedUsers = users.map(user =>
       this.userToResponseDataMapper.toResponse(user),
     )

@@ -10,13 +10,11 @@ import {
   Query,
   UsePipes,
   UseGuards,
-  BadRequestException,
-  Put,
+  Patch,
 } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
@@ -37,6 +35,7 @@ import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
 import { ActiveUser } from '@/common/decorators/active-user.decorator'
 import { RolesGuard } from '@/common/guards/roles.guard'
 import { Permissions } from '@/common/decorators/permission.decorator'
+import { NotesRuleGuard } from '@/notes/note-rules.guard'
 
 @ApiTags('Notes')
 @Controller('notes')
@@ -189,7 +188,7 @@ export class NotesController {
   }
 
   @Get(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, NotesRuleGuard)
   @Permissions(['user', 'admin'])
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
@@ -229,15 +228,8 @@ export class NotesController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async findOne(@Param('id') id: string, @UserData() userData: User) {
+  async findOne(@Param('id') id: string) {
     const note = await this.notesService.findOneById(id)
-    if (
-      !note ||
-      userData.id !== note.userId ||
-      userData.user_role !== 'admin'
-    ) {
-      throw new BadRequestException('Note not found')
-    }
     return {
       success: true,
       message: 'Note retrieved successfully',
@@ -245,8 +237,8 @@ export class NotesController {
     }
   }
 
-  @Put(':id')
-  @UseGuards(RolesGuard)
+  @Patch(':id')
+  @UseGuards(RolesGuard, NotesRuleGuard)
   @Permissions(['user', 'admin'])
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
@@ -286,19 +278,7 @@ export class NotesController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateNoteDto: UpdateNoteDto,
-    @UserData() userData: User,
-  ) {
-    const existingNote = await this.notesService.findOneById(id)
-    if (
-      !existingNote ||
-      (userData.id !== existingNote.userId && userData.user_role !== 'admin')
-    ) {
-      throw new BadRequestException('Note not found')
-    }
-
+  async update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
     const note = await this.notesService.update(id, updateNoteDto)
     return {
       success: true,
@@ -308,8 +288,8 @@ export class NotesController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard, NotesRuleGuard)
   @Permissions(['user', 'admin'])
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
@@ -338,17 +318,7 @@ export class NotesController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async remove(@Param('id') id: string, @UserData() userData: User) {
-    const note = await this.notesService.findOneById(id)
-    if (!note) {
-      throw new BadRequestException('Note not found')
-    }
-    if (userData.id !== note.userId || userData.user_role !== 'admin') {
-      throw new BadRequestException(
-        'You do not have permission to delete this note or note not found',
-      )
-    }
-
+  async remove(@Param('id') id: string) {
     await this.notesService.remove(id)
     return {
       success: true,
