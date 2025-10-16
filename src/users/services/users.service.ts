@@ -116,6 +116,16 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<Array<User>> {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1)
+
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+
     const result = await this.db
       .delete(users)
       .where(eq(users.id, id))

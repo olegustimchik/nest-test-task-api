@@ -35,12 +35,11 @@ import {
 import { UserToResponseDataMapper } from './data-mappers/user-to-response.data-mapper'
 import { JwtService } from '@nestjs/jwt'
 import { AuthGuard } from '@/jwt/auth.guard'
-import { UserData } from '@/common/decorators/user-data.decorator'
-import { User } from '@/database/schema/user.schema'
 import { RolesGuard } from '@/common/guards/roles.guard'
 import { Permissions } from '@/common/decorators/permission.decorator'
 import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
 import { ActiveUser } from '@/common/decorators/active-user.decorator'
+import { UsersRuleGuard } from './user-rule.guard'
 
 @ApiTags('Users')
 @Controller('users')
@@ -250,7 +249,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
+  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -292,12 +291,7 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async findOne(@Param('id') id: string, @UserData() userData: User) {
-    if (userData.user_role !== 'admin' && userData.id !== id) {
-      throw new BadRequestException(
-        'You do not have permission to view this user',
-      )
-    }
+  async findOne(@Param('id') id: string) {
     const user = await this.usersService.findOne(id)
     const mappedUser = this.userToResponseDataMapper.toResponse(user)
     return {
@@ -356,7 +350,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
+  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -398,16 +392,7 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto,
-    @UserData() userData: User,
-  ) {
-    if (userData.user_role !== 'admin' && userData.id !== id) {
-      throw new BadRequestException(
-        'You do not have permission to view this user',
-      )
-    }
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.usersService.update(id, updateUserDto)
     return {
       success: true,
@@ -418,7 +403,7 @@ export class UsersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
+  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['admin', 'user'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -448,12 +433,7 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiForbiddenResponse({ description: 'Forbidden' })
-  async remove(@Param('id') id: string, @UserData() userData: User) {
-    if (userData.user_role !== 'admin' && userData.id !== id) {
-      throw new BadRequestException(
-        'You do not have permission to view this user',
-      )
-    }
+  async remove(@Param('id') id: string) {
     await this.usersService.remove(id)
     return {
       success: true,
