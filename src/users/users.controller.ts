@@ -34,13 +34,13 @@ import {
 } from './dto/user.dto'
 import { UserToResponseDataMapper } from './data-mappers/user-to-response.data-mapper'
 import { JwtService } from '@nestjs/jwt'
-import { AuthGuard } from '@/jwt/auth.guard'
 import { RolesGuard } from '@/common/guards/roles.guard'
 import { Permissions } from '@/common/decorators/permission.decorator'
 import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
 import { ActiveUser } from '@/common/decorators/active-user.decorator'
 import { UsersRuleGuard } from './user-rule.guard'
 import { generateSuccess } from '@/common/generate-success'
+import { SkipAuth } from '@/common/decorators/skip.decorator'
 
 @ApiTags('Users')
 @Controller('users')
@@ -53,6 +53,7 @@ export class UsersController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
+  @SkipAuth(true)
   @ApiOperation({
     summary: 'Register a new user',
     description:
@@ -121,6 +122,7 @@ export class UsersController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @SkipAuth(true)
   @ApiOperation({
     summary: 'User login',
     description:
@@ -177,7 +179,7 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
+  @UseGuards(RolesGuard, AllowBlockedGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -249,7 +251,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
+  @UseGuards(RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -298,7 +300,7 @@ export class UsersController {
   }
 
   @Put('block/:id')
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard)
+  @UseGuards(RolesGuard, AllowBlockedGuard)
   @Permissions(['admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -342,7 +344,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
+  @UseGuards(RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['user', 'admin'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')
@@ -391,7 +393,7 @@ export class UsersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(AuthGuard, RolesGuard, AllowBlockedGuard, UsersRuleGuard)
+  @UseGuards(RolesGuard, AllowBlockedGuard, UsersRuleGuard)
   @Permissions(['admin', 'user'])
   @ActiveUser(true)
   @ApiBearerAuth('JWT-auth')

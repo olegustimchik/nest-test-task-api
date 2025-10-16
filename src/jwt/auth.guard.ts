@@ -1,3 +1,4 @@
+import { SkipAuth } from '@/common/decorators/skip.decorator'
 import { UsersService } from '@/users/services/users.service'
 import {
   Injectable,
@@ -5,6 +6,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 import { Request } from 'express'
 
@@ -13,10 +15,19 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UsersService,
+    private reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
+    const skipAuth = this.reflector.getAllAndOverride<boolean>(SkipAuth, [
+      context.getHandler(),
+      context.getClass(),
+    ])
+    if (skipAuth) {
+      return true
+    }
+
     const token = this.extractTokenFromHeader(request)
     if (!token) {
       throw new UnauthorizedException()

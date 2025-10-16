@@ -14,6 +14,7 @@ async function bootstrap() {
     bufferLogs: true,
   })
   const winstonLogger = app.get(WinstonLogger)
+
   app.useLogger(winstonLogger)
   app.useGlobalPipes(new ZodValidationPipe())
   app.enableCors({

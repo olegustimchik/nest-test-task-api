@@ -20,6 +20,7 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiNoContentResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
@@ -27,7 +28,6 @@ import {
 import { NotesService } from './notes.service'
 import { CreateNoteDto, NoteFilterDto, UpdateNoteDto } from './dto/note.dto'
 import { ZodValidationPipe } from 'nestjs-zod'
-import { AuthGuard } from '@/jwt/auth.guard'
 import { UserData } from '@/common/decorators/user-data.decorator'
 import { User } from '@/database/schema/user.schema'
 import { AllowBlockedGuard } from '@/common/guards/allow-blocked.guard'
@@ -41,7 +41,7 @@ import { generateSuccess } from '@/common/generate-success'
 @Controller('notes')
 @ActiveUser(true)
 @UsePipes(ZodValidationPipe)
-@UseGuards(AuthGuard, AllowBlockedGuard)
+@UseGuards(AllowBlockedGuard)
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
@@ -226,9 +226,9 @@ export class NotesController {
   @Permissions(['user', 'admin'])
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Update note (PATCH)',
+    summary: 'Update note',
     description:
-      'Partially updates a note. Users can only update their own notes unless they are admin.',
+      'Updates a note. Users can only update their own notes unless they are admin.',
   })
   @ApiParam({
     name: 'id',
@@ -283,7 +283,7 @@ export class NotesController {
     description: 'Note ID to delete',
     format: 'uuid',
   })
-  @ApiOkResponse({
+  @ApiNoContentResponse({
     description: 'Note deleted successfully',
     schema: {
       type: 'object',
